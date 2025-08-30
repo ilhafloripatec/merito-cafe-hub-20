@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
 
   const getPrice = () => {
     if (!selectedVariation) return product.price;
-    return product.price + (product.price * selectedVariation.priceModifier);
+    return selectedVariation.price;
   };
 
   const handleAddToCart = () => {
@@ -100,7 +101,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 <SelectContent>
                   {product.variations.map((variation) => (
                     <SelectItem key={variation.id} value={variation.id}>
-                      {variation.weight} - {formatCurrency(product.price + (product.price * variation.priceModifier))}
+                      {variation.weight} - {formatCurrency(variation.price)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -113,11 +114,6 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
               <span className="text-2xl font-bold text-accent">
                 {formatCurrency(getPrice())}
               </span>
-              {selectedVariation && selectedVariation.priceModifier > 0 && (
-                <span className="text-sm text-muted-foreground line-through ml-2">
-                  {formatCurrency(product.price)}
-                </span>
-              )}
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">

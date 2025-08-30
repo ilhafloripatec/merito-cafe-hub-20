@@ -1,8 +1,9 @@
+
 export interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number; // Mudança: usar 'price' ao invés de base_price para consistência
   category: string;
   image: string;
   variations: ProductVariation[];
@@ -16,7 +17,7 @@ export interface ProductVariation {
   id: string;
   name: string;
   weight: string;
-  priceModifier: number;
+  price: number; // Mudança: usar 'price' diretamente
   stock: number;
 }
 

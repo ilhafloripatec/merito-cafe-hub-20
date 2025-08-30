@@ -105,7 +105,9 @@ export function useCart() {
 
   const getTotal = () => {
     return items.reduce((total, item) => {
-      const basePrice = item.product.price || item.product.base_price || 0;
+      // Use price from Product type (not base_price)
+      const basePrice = item.product.price || 0;
+      // Use price from ProductVariation type (not priceModifier)
       const variationPrice = item.variation ? item.variation.price : basePrice;
       return total + (variationPrice * item.quantity);
     }, 0);

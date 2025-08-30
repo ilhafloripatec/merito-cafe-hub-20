@@ -66,11 +66,11 @@ export function useProducts() {
     }
   };
 
-  const createProduct = async (productData: Partial<Product>) => {
+  const createProduct = async (productData: Omit<Product, 'id' | 'created_at' | 'category' | 'variations'>) => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .insert([productData])
+        .insert(productData)
         .select()
         .single();
 
@@ -93,7 +93,7 @@ export function useProducts() {
     }
   };
 
-  const updateProduct = async (id: string, productData: Partial<Product>) => {
+  const updateProduct = async (id: string, productData: Partial<Omit<Product, 'id' | 'created_at' | 'category' | 'variations'>>) => {
     try {
       const { data, error } = await supabase
         .from('products')
@@ -106,7 +106,7 @@ export function useProducts() {
 
       toast({
         title: "Produto atualizado com sucesso!",
-        description: `${productData.name} foi atualizado.`
+        description: `Produto foi atualizado.`
       });
 
       await fetchProducts();
