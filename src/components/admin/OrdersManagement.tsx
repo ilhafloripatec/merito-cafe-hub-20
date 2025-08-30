@@ -15,7 +15,7 @@ interface Order {
   id: string;
   order_number: string;
   user_id: string;
-  status: 'pendente' | 'pago' | 'preparando' | 'enviado' | 'entregue' | 'cancelado';
+  status: 'pendente' | 'confirmado' | 'enviado' | 'entregue' | 'cancelado';
   subtotal: number;
   shipping: number;
   total: number;
@@ -61,7 +61,7 @@ export function OrdersManagement() {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: 'pendente' | 'pago' | 'preparando' | 'enviado' | 'entregue' | 'cancelado') => {
+  const updateOrderStatus = async (orderId: string, newStatus: 'pendente' | 'confirmado' | 'enviado' | 'entregue' | 'cancelado') => {
     try {
       const { error } = await supabase
         .from('orders')
@@ -91,9 +91,8 @@ export function OrdersManagement() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pendente': return 'secondary';
-      case 'pago': return 'default';
-      case 'preparando': return 'outline';
-      case 'enviado': return 'default';
+      case 'confirmado': return 'default';
+      case 'enviado': return 'outline';
       case 'entregue': return 'default';
       case 'cancelado': return 'destructive';
       default: return 'secondary';
@@ -103,8 +102,7 @@ export function OrdersManagement() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pendente': return 'Pendente';
-      case 'pago': return 'Pago';
-      case 'preparando': return 'Preparando';
+      case 'confirmado': return 'Confirmado';
       case 'enviado': return 'Enviado';
       case 'entregue': return 'Entregue';
       case 'cancelado': return 'Cancelado';
@@ -146,8 +144,7 @@ export function OrdersManagement() {
           <SelectContent>
             <SelectItem value="todos">Todos os Status</SelectItem>
             <SelectItem value="pendente">Pendente</SelectItem>
-            <SelectItem value="pago">Pago</SelectItem>
-            <SelectItem value="preparando">Preparando</SelectItem>
+            <SelectItem value="confirmado">Confirmado</SelectItem>
             <SelectItem value="enviado">Enviado</SelectItem>
             <SelectItem value="entregue">Entregue</SelectItem>
             <SelectItem value="cancelado">Cancelado</SelectItem>
@@ -183,7 +180,7 @@ export function OrdersManagement() {
                   <TableCell>
                     <Select
                       value={order.status}
-                      onValueChange={(value) => updateOrderStatus(order.id, value)}
+                      onValueChange={(value: 'pendente' | 'confirmado' | 'enviado' | 'entregue' | 'cancelado') => updateOrderStatus(order.id, value)}
                     >
                       <SelectTrigger className="w-32">
                         <Badge variant={getStatusColor(order.status)}>
@@ -192,8 +189,7 @@ export function OrdersManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pendente">Pendente</SelectItem>
-                        <SelectItem value="pago">Pago</SelectItem>
-                        <SelectItem value="preparando">Preparando</SelectItem>
+                        <SelectItem value="confirmado">Confirmado</SelectItem>
                         <SelectItem value="enviado">Enviado</SelectItem>
                         <SelectItem value="entregue">Entregue</SelectItem>
                         <SelectItem value="cancelado">Cancelado</SelectItem>

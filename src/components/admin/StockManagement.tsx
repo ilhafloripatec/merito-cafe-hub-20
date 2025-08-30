@@ -39,7 +39,7 @@ export function StockManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedVariation, setSelectedVariation] = useState<StockItem | null>(null);
   const [movementData, setMovementData] = useState({
-    type: 'entrada' as const,
+    type: 'entrada' as 'entrada' | 'saida' | 'ajuste',
     quantity: '',
     reason: ''
   });
@@ -288,7 +288,7 @@ export function StockManagement() {
                             <label className="text-sm font-medium">Tipo de Movimento</label>
                             <Select 
                               value={movementData.type} 
-                              onValueChange={(value: any) => setMovementData({ ...movementData, type: value })}
+                              onValueChange={(value: 'entrada' | 'saida' | 'ajuste') => setMovementData({ ...movementData, type: value })}
                             >
                               <SelectTrigger>
                                 <SelectValue />

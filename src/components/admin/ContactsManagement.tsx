@@ -17,7 +17,7 @@ interface Contact {
   email: string;
   subject: string;
   message: string;
-  status: 'novo' | 'em_andamento' | 'resolvido';
+  status: 'novo' | 'respondido';
   created_at: string;
 }
 
@@ -52,7 +52,7 @@ export function ContactsManagement() {
     }
   };
 
-  const updateContactStatus = async (contactId: string, newStatus: 'novo' | 'em_andamento' | 'resolvido') => {
+  const updateContactStatus = async (contactId: string, newStatus: 'novo' | 'respondido') => {
     try {
       const { error } = await supabase
         .from('contacts')
@@ -82,8 +82,7 @@ export function ContactsManagement() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'novo': return 'default';
-      case 'em_andamento': return 'secondary';
-      case 'resolvido': return 'outline';
+      case 'respondido': return 'outline';
       default: return 'secondary';
     }
   };
@@ -91,8 +90,7 @@ export function ContactsManagement() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'novo': return 'Novo';
-      case 'em_andamento': return 'Em Andamento';
-      case 'resolvido': return 'Resolvido';
+      case 'respondido': return 'Respondido';
       default: return status;
     }
   };
@@ -132,8 +130,7 @@ export function ContactsManagement() {
           <SelectContent>
             <SelectItem value="todos">Todos os Status</SelectItem>
             <SelectItem value="novo">Novo</SelectItem>
-            <SelectItem value="em_andamento">Em Andamento</SelectItem>
-            <SelectItem value="resolvido">Resolvido</SelectItem>
+            <SelectItem value="respondido">Respondido</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -166,7 +163,7 @@ export function ContactsManagement() {
                   <TableCell>
                     <Select
                       value={contact.status}
-                      onValueChange={(value) => updateContactStatus(contact.id, value)}
+                      onValueChange={(value: 'novo' | 'respondido') => updateContactStatus(contact.id, value)}
                     >
                       <SelectTrigger className="w-32">
                         <Badge variant={getStatusColor(contact.status)}>
@@ -175,8 +172,7 @@ export function ContactsManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="novo">Novo</SelectItem>
-                        <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                        <SelectItem value="resolvido">Resolvido</SelectItem>
+                        <SelectItem value="respondido">Respondido</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>

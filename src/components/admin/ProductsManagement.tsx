@@ -26,7 +26,7 @@ export function ProductsManagement() {
     description: '',
     price: '',
     category: '',
-    status: 'ativo' as const,
+    status: 'ativo' as 'ativo' | 'inativo',
     featured: false,
     tags: '',
     images: ''
@@ -204,7 +204,7 @@ export function ProductsManagement() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Status</label>
-                  <Select value={formData.status} onValueChange={(value: any) => setFormData({ ...formData, status: value })}>
+                  <Select value={formData.status} onValueChange={(value: 'ativo' | 'inativo') => setFormData({ ...formData, status: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
