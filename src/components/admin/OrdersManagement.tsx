@@ -15,7 +15,7 @@ interface Order {
   id: string;
   order_number: string;
   user_id: string;
-  status: string;
+  status: 'pendente' | 'pago' | 'preparando' | 'enviado' | 'entregue' | 'cancelado';
   subtotal: number;
   shipping: number;
   total: number;
@@ -24,7 +24,7 @@ interface Order {
   created_at: string;
   profiles?: {
     name: string;
-  };
+  } | null;
 }
 
 export function OrdersManagement() {
@@ -61,7 +61,7 @@ export function OrdersManagement() {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: 'pendente' | 'pago' | 'preparando' | 'enviado' | 'entregue' | 'cancelado') => {
     try {
       const { error } = await supabase
         .from('orders')

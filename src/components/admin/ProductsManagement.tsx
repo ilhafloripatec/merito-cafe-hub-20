@@ -10,9 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { Product } from '@/types/product';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+
+// Use the Product type from useProducts hook
+import { Product } from '@/hooks/useProducts';
 
 export function ProductsManagement() {
   const { products, loading, createProduct, updateProduct, deleteProduct } = useProducts();
@@ -32,7 +34,7 @@ export function ProductsManagement() {
 
   const filteredProducts = products?.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category?.toLowerCase().includes(searchTerm.toLowerCase())
+    product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   const resetForm = () => {
@@ -55,8 +57,8 @@ export function ProductsManagement() {
       setFormData({
         name: product.name,
         description: product.description || '',
-        price: product.price?.toString() || '',
-        category: product.category || '',
+        price: product.base_price?.toString() || '',
+        category: product.category_id || '',
         status: product.status || 'ativo',
         featured: product.featured || false,
         tags: product.tags?.join(', ') || '',
@@ -76,7 +78,7 @@ export function ProductsManagement() {
         name: formData.name,
         description: formData.description,
         base_price: parseFloat(formData.price),
-        category_id: formData.category, // Assuming category is an ID
+        category_id: formData.category,
         status: formData.status,
         featured: formData.featured,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
@@ -91,7 +93,7 @@ export function ProductsManagement() {
           description: "O produto foi atualizado com sucesso."
         });
       } else {
-        await createProduct([productData]);
+        await createProduct(productData);
         toast({
           title: "Produto criado!",
           description: "O produto foi criado com sucesso."
@@ -265,8 +267,8 @@ export function ProductsManagement() {
               {filteredProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell>{formatCurrency(product.price || 0)}</TableCell>
+                  <TableCell>{product.category?.name || 'Sem categoria'}</TableCell>
+                  <TableCell>{formatCurrency(product.base_price || 0)}</TableCell>
                   <TableCell>
                     <Badge variant={product.status === 'ativo' ? 'default' : 'secondary'}>
                       {product.status}

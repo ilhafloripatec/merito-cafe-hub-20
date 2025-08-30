@@ -17,7 +17,7 @@ interface Contact {
   email: string;
   subject: string;
   message: string;
-  status: string;
+  status: 'novo' | 'em_andamento' | 'resolvido';
   created_at: string;
 }
 
@@ -52,7 +52,7 @@ export function ContactsManagement() {
     }
   };
 
-  const updateContactStatus = async (contactId: string, newStatus: string) => {
+  const updateContactStatus = async (contactId: string, newStatus: 'novo' | 'em_andamento' | 'resolvido') => {
     try {
       const { error } = await supabase
         .from('contacts')
