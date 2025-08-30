@@ -13,6 +13,7 @@ import Register from "./pages/Register";
 import Cart from "./pages/Cart";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/carrinho" element={<Cart />} />
             <Route path="/sobre" element={<About />} />
             <Route path="/contato" element={<Contact />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
