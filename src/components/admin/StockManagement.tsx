@@ -1,33 +1,29 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertTriangle, Plus, Minus, Search, Package } from 'lucide-react';
+import { AlertTriangle, Package, Plus, Minus, Search } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-interface ProductVariation {
+interface StockItem {
   id: string;
-  weight: string;
-  price: number;
-  stock: number;
+  product_name: string;
+  variation_weight: string;
+  current_stock: number;
   min_stock: number;
-  product_id: string;
-  products?: {
-    name: string;
-  };
+  price: number;
 }
 
-interface StockMovementData {
+interface StockMovement {
   id: string;
   variation_id: string;
-  type: 'entrada' | 'saida' | 'venda' | 'perda' | 'ajuste';
+  type: 'entrada' | 'saida' | 'ajuste';
   quantity: number;
   previous_stock: number;
   current_stock: number;
@@ -36,40 +32,54 @@ interface StockMovementData {
 }
 
 export function StockManagement() {
-  const [variations, setVariations] = useState<ProductVariation[]>([]);
-  const [movements, setMovements] = useState<StockMovementData[]>([]);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(null);
-  const [movementForm, setMovementForm] = useState({
-    type: '',
+  const [selectedVariation, setSelectedVariation] = useState<StockItem | null>(null);
+  const [movementData, setMovementData] = useState({
+    type: 'entrada' as 'entrada' | 'saida' | 'ajuste',
     quantity: '',
     reason: ''
   });
 
   useEffect(() => {
-    fetchVariations();
-    fetchMovements();
+    fetchStockData();
+    fetchStockMovements();
   }, []);
 
-  const fetchVariations = async () => {
+  const fetchStockData = async () => {
     try {
       const { data, error } = await supabase
         .from('product_variations')
         .select(`
-          *,
-          products(name)
+          id,
+          weight,
+          stock,
+          min_stock,
+          price,
+          products!inner(name)
         `)
         .order('stock', { ascending: true });
 
       if (error) throw error;
-      setVariations(data || []);
+
+      const formattedData = data?.map(item => ({
+        id: item.id,
+        product_name: item.products.name,
+        variation_weight: item.weight,
+        current_stock: item.stock,
+        min_stock: item.min_stock,
+        price: item.price
+      })) || [];
+
+      setStockItems(formattedData);
     } catch (error) {
-      console.error('Error fetching variations:', error);
+      console.error('Error fetching stock data:', error);
       toast({
         title: "Erro",
-        description: "Erro ao carregar variações.",
+        description: "Erro ao carregar dados de estoque.",
         variant: "destructive"
       });
     } finally {
@@ -77,7 +87,7 @@ export function StockManagement() {
     }
   };
 
-  const fetchMovements = async () => {
+  const fetchStockMovements = async () => {
     try {
       const { data, error } = await supabase
         .from('stock_movements')
@@ -86,42 +96,39 @@ export function StockManagement() {
         .limit(50);
 
       if (error) throw error;
-      setMovements(data || []);
+      setStockMovements(data || []);
     } catch (error) {
-      console.error('Error fetching movements:', error);
+      console.error('Error fetching stock movements:', error);
     }
   };
 
-  const handleStockUpdate = async () => {
-    if (!selectedVariation || !movementForm.type || !movementForm.quantity) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleStockMovement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedVariation) return;
 
     try {
-      const quantity = parseInt(movementForm.quantity);
-      let newStock = selectedVariation.stock;
+      const quantity = parseInt(movementData.quantity);
+      let newStock = selectedVariation.current_stock;
 
-      if (movementForm.type === 'entrada') {
+      if (movementData.type === 'entrada') {
         newStock += quantity;
-      } else {
+      } else if (movementData.type === 'saida') {
         newStock -= quantity;
+      } else {
+        newStock = quantity; // ajuste direto
       }
 
       if (newStock < 0) {
         toast({
           title: "Erro",
-          description: "Estoque não pode ficar negativo.",
+          description: "O estoque não pode ser negativo.",
           variant: "destructive"
         });
         return;
       }
 
-      // Atualizar estoque
+      // Atualizar o estoque
       const { error: updateError } = await supabase
         .from('product_variations')
         .update({ stock: newStock })
@@ -134,28 +141,27 @@ export function StockManagement() {
         .from('stock_movements')
         .insert({
           variation_id: selectedVariation.id,
-          type: movementForm.type as 'entrada' | 'saida' | 'ajuste',
-          quantity,
-          previous_stock: selectedVariation.stock,
+          type: movementData.type,
+          quantity: quantity,
+          previous_stock: selectedVariation.current_stock,
           current_stock: newStock,
-          reason: movementForm.reason || `Movimentação de ${movementForm.type}`
+          reason: movementData.reason
         });
 
       if (movementError) throw movementError;
 
-      // Atualizar estado local
-      setVariations(variations.map(v => 
-        v.id === selectedVariation.id ? { ...v, stock: newStock } : v
-      ));
-
       toast({
-        title: "Estoque atualizado",
-        description: "Movimentação registrada com sucesso."
+        title: "Sucesso",
+        description: "Movimento de estoque registrado com sucesso."
       });
 
       setIsDialogOpen(false);
-      setMovementForm({ type: '', quantity: '', reason: '' });
-      fetchMovements();
+      setMovementData({ type: 'entrada', quantity: '', reason: '' });
+      setSelectedVariation(null);
+      
+      // Recarregar dados
+      fetchStockData();
+      fetchStockMovements();
     } catch (error) {
       console.error('Error updating stock:', error);
       toast({
@@ -166,37 +172,35 @@ export function StockManagement() {
     }
   };
 
-  const filteredVariations = variations.filter(variation =>
-    variation.products?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    variation.weight.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredItems = stockItems.filter(item =>
+    item.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.variation_weight.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const lowStockVariations = variations.filter(v => v.stock <= v.min_stock);
+  const lowStockItems = stockItems.filter(item => item.current_stock <= item.min_stock);
 
   if (loading) {
-    return <div className="flex justify-center p-8">Carregando estoque...</div>;
+    return <div className="flex justify-center p-8">Carregando dados de estoque...</div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Alertas de Estoque Baixo */}
-      {lowStockVariations.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
+      {/* Alertas de estoque baixo */}
+      {lowStockItems.length > 0 && (
+        <Card className="border-yellow-200 bg-yellow-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
+            <CardTitle className="flex items-center gap-2 text-yellow-800">
               <AlertTriangle className="w-5 h-5" />
-              Alertas de Estoque Baixo ({lowStockVariations.length})
+              Alertas de Estoque Baixo ({lowStockItems.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {lowStockVariations.map(variation => (
-                <div key={variation.id} className="flex justify-between items-center p-2 bg-white rounded border">
-                  <span className="font-medium">
-                    {variation.products?.name} - {variation.weight}
-                  </span>
+              {lowStockItems.map(item => (
+                <div key={item.id} className="flex justify-between items-center p-2 bg-white rounded">
+                  <span className="font-medium">{item.product_name} - {item.variation_weight}</span>
                   <Badge variant="destructive">
-                    {variation.stock} unidades
+                    {item.current_stock} restantes
                   </Badge>
                 </div>
               ))}
@@ -205,7 +209,6 @@ export function StockManagement() {
         </Card>
       )}
 
-      {/* Controles */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -218,12 +221,11 @@ export function StockManagement() {
         </div>
       </div>
 
-      {/* Tabela de Estoque */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
-            Controle de Estoque ({filteredVariations.length})
+            Controle de Estoque
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -239,80 +241,109 @@ export function StockManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVariations.map((variation) => (
-                <TableRow key={variation.id}>
-                  <TableCell className="font-medium">
-                    {variation.products?.name}
-                  </TableCell>
-                  <TableCell>{variation.weight}</TableCell>
+              {filteredItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.product_name}</TableCell>
+                  <TableCell>{item.variation_weight}</TableCell>
+                  <TableCell>{item.current_stock}</TableCell>
+                  <TableCell>{item.min_stock}</TableCell>
                   <TableCell>
-                    <span className={variation.stock <= variation.min_stock ? 'text-red-600 font-semibold' : ''}>
-                      {variation.stock}
-                    </span>
-                  </TableCell>
-                  <TableCell>{variation.min_stock}</TableCell>
-                  <TableCell>
-                    <Badge variant={variation.stock <= variation.min_stock ? 'destructive' : 'default'}>
-                      {variation.stock <= variation.min_stock ? 'Estoque Baixo' : 'Normal'}
+                    <Badge 
+                      variant={
+                        item.current_stock === 0 
+                          ? 'destructive' 
+                          : item.current_stock <= item.min_stock 
+                            ? 'secondary' 
+                            : 'default'
+                      }
+                    >
+                      {item.current_stock === 0 
+                        ? 'Esgotado' 
+                        : item.current_stock <= item.min_stock 
+                          ? 'Baixo' 
+                          : 'Normal'
+                      }
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <Dialog open={isDialogOpen && selectedVariation?.id === item.id} onOpenChange={(open) => {
+                      setIsDialogOpen(open);
+                      if (open) setSelectedVariation(item);
+                    }}>
                       <DialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setSelectedVariation(variation)}
-                        >
-                          Movimentar
+                        <Button variant="outline" size="sm">
+                          Ajustar
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>
-                            Movimentar Estoque - {selectedVariation?.products?.name} ({selectedVariation?.weight})
-                          </DialogTitle>
+                          <DialogTitle>Movimento de Estoque</DialogTitle>
+                          <DialogDescription>
+                            Registrar entrada, saída ou ajuste para {item.product_name} - {item.variation_weight}
+                          </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4">
+                        
+                        <form onSubmit={handleStockMovement} className="space-y-4">
                           <div>
-                            <Label>Estoque Atual: {selectedVariation?.stock} unidades</Label>
-                          </div>
-                          <div>
-                            <Label htmlFor="type">Tipo de Movimento</Label>
-                            <Select value={movementForm.type} onValueChange={(value) => setMovementForm({...movementForm, type: value})}>
+                            <label className="text-sm font-medium">Tipo de Movimento</label>
+                            <Select 
+                              value={movementData.type} 
+                              onValueChange={(value: 'entrada' | 'saida' | 'ajuste') => setMovementData({ ...movementData, type: value })}
+                            >
                               <SelectTrigger>
-                                <SelectValue placeholder="Selecione o tipo" />
+                                <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="entrada">Entrada</SelectItem>
-                                <SelectItem value="saida">Saída</SelectItem>
-                                <SelectItem value="ajuste">Ajuste</SelectItem>
+                                <SelectItem value="entrada">
+                                  <div className="flex items-center gap-2">
+                                    <Plus className="w-4 h-4 text-green-500" />
+                                    Entrada
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="saida">
+                                  <div className="flex items-center gap-2">
+                                    <Minus className="w-4 h-4 text-red-500" />
+                                    Saída
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="ajuste">Ajuste Manual</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
+
                           <div>
-                            <Label htmlFor="quantity">Quantidade</Label>
+                            <label className="text-sm font-medium">Quantidade</label>
                             <Input
-                              id="quantity"
                               type="number"
-                              value={movementForm.quantity}
-                              onChange={(e) => setMovementForm({...movementForm, quantity: e.target.value})}
-                              placeholder="0"
+                              value={movementData.quantity}
+                              onChange={(e) => setMovementData({ ...movementData, quantity: e.target.value })}
+                              required
+                              min="1"
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Estoque atual: {selectedVariation?.current_stock}
+                            </p>
                           </div>
+
                           <div>
-                            <Label htmlFor="reason">Motivo</Label>
+                            <label className="text-sm font-medium">Motivo</label>
                             <Input
-                              id="reason"
-                              value={movementForm.reason}
-                              onChange={(e) => setMovementForm({...movementForm, reason: e.target.value})}
-                              placeholder="Descreva o motivo da movimentação"
+                              value={movementData.reason}
+                              onChange={(e) => setMovementData({ ...movementData, reason: e.target.value })}
+                              placeholder="Ex: Reposição, Venda, Correção"
+                              required
                             />
                           </div>
-                          <Button onClick={handleStockUpdate} className="w-full">
-                            Confirmar Movimentação
-                          </Button>
-                        </div>
+
+                          <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                              Cancelar
+                            </Button>
+                            <Button type="submit">
+                              Registrar Movimento
+                            </Button>
+                          </DialogFooter>
+                        </form>
                       </DialogContent>
                     </Dialog>
                   </TableCell>
@@ -320,12 +351,50 @@ export function StockManagement() {
               ))}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
 
-          {filteredVariations.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhuma variação encontrada.
-            </div>
-          )}
+      {/* Histórico de movimentos */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Últimas Movimentações</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Quantidade</TableHead>
+                <TableHead>Estoque Anterior</TableHead>
+                <TableHead>Estoque Atual</TableHead>
+                <TableHead>Motivo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stockMovements.slice(0, 10).map((movement) => (
+                <TableRow key={movement.id}>
+                  <TableCell>
+                    {new Date(movement.created_at).toLocaleDateString('pt-BR')}
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={
+                        movement.type === 'entrada' ? 'default' : 
+                        movement.type === 'saida' ? 'destructive' : 'secondary'
+                      }
+                    >
+                      {movement.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{movement.quantity}</TableCell>
+                  <TableCell>{movement.previous_stock}</TableCell>
+                  <TableCell>{movement.current_stock}</TableCell>
+                  <TableCell>{movement.reason}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
