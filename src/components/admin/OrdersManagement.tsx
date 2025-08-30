@@ -11,7 +11,7 @@ import { Search, Eye } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
-interface Order {
+interface OrderData {
   id: string;
   order_number: string;
   user_id: string;
@@ -28,7 +28,7 @@ interface Order {
 }
 
 export function OrdersManagement() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
