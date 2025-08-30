@@ -41,7 +41,7 @@ export default function Cart() {
           <div className="space-y-4">
             {items.map((item) => {
               const variationPrice = item.variation 
-                ? item.product.price + (item.product.price * item.variation.priceModifier) 
+                ? item.variation.price
                 : item.product.price;
 
               return (

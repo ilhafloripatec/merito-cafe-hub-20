@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
                     <p className="text-sm font-semibold text-accent">
                       {formatCurrency(
                         item.variation 
-                          ? item.product.price + (item.product.price * item.variation.priceModifier)
+                          ? item.variation.price
                           : item.product.price
                       )}
                     </p>

@@ -1,3 +1,4 @@
+
 import { Product } from '@/types/product';
 
 export const mockProducts: Product[] = [
@@ -9,9 +10,9 @@ export const mockProducts: Product[] = [
     category: 'Blends',
     image: '/src/assets/blend-manha.jpg',
     variations: [
-      { id: '1-250', name: '250g', weight: '250g', priceModifier: 0, stock: 25 },
-      { id: '1-500', name: '500g', weight: '500g', priceModifier: 0.8, stock: 18 },
-      { id: '1-1kg', name: '1kg', weight: '1kg', priceModifier: 1.6, stock: 12 }
+      { id: '1-250', name: '250g', weight: '250g', price: 45.00, stock: 25 },
+      { id: '1-500', name: '500g', weight: '500g', price: 81.00, stock: 18 },
+      { id: '1-1kg', name: '1kg', weight: '1kg', price: 117.00, stock: 12 }
     ],
     status: 'active',
     featured: true,
@@ -26,9 +27,9 @@ export const mockProducts: Product[] = [
     category: 'Blends',
     image: '/src/assets/blend-noturno.jpg',
     variations: [
-      { id: '2-250', name: '250g', weight: '250g', priceModifier: 0, stock: 22 },
-      { id: '2-500', name: '500g', weight: '500g', priceModifier: 0.8, stock: 15 },
-      { id: '2-1kg', name: '1kg', weight: '1kg', priceModifier: 1.6, stock: 8 }
+      { id: '2-250', name: '250g', weight: '250g', price: 52.00, stock: 22 },
+      { id: '2-500', name: '500g', weight: '500g', price: 93.60, stock: 15 },
+      { id: '2-1kg', name: '1kg', weight: '1kg', price: 135.20, stock: 8 }
     ],
     status: 'active',
     featured: true,
@@ -43,9 +44,9 @@ export const mockProducts: Product[] = [
     category: 'Premium',
     image: '/src/assets/premium-gold.jpg',
     variations: [
-      { id: '3-250', name: '250g', weight: '250g', priceModifier: 0, stock: 15 },
-      { id: '3-500', name: '500g', weight: '500g', priceModifier: 0.8, stock: 10 },
-      { id: '3-1kg', name: '1kg', weight: '1kg', priceModifier: 1.6, stock: 5 }
+      { id: '3-250', name: '250g', weight: '250g', price: 68.00, stock: 15 },
+      { id: '3-500', name: '500g', weight: '500g', price: 122.40, stock: 10 },
+      { id: '3-1kg', name: '1kg', weight: '1kg', price: 176.80, stock: 5 }
     ],
     status: 'active',
     featured: true,
@@ -60,8 +61,8 @@ export const mockProducts: Product[] = [
     category: 'Especiais',
     image: '/src/assets/blend-manha.jpg',
     variations: [
-      { id: '4-250', name: '250g', weight: '250g', priceModifier: 0, stock: 12 },
-      { id: '4-500', name: '500g', weight: '500g', priceModifier: 0.8, stock: 8 }
+      { id: '4-250', name: '250g', weight: '250g', price: 58.00, stock: 12 },
+      { id: '4-500', name: '500g', weight: '500g', price: 104.40, stock: 8 }
     ],
     status: 'active',
     featured: false,
@@ -76,8 +77,8 @@ export const mockProducts: Product[] = [
     category: 'Especiais',
     image: '/src/assets/blend-noturno.jpg',
     variations: [
-      { id: '5-250', name: '250g', weight: '250g', priceModifier: 0, stock: 20 },
-      { id: '5-500', name: '500g', weight: '500g', priceModifier: 0.8, stock: 15 }
+      { id: '5-250', name: '250g', weight: '250g', price: 49.00, stock: 20 },
+      { id: '5-500', name: '500g', weight: '500g', price: 88.20, stock: 15 }
     ],
     status: 'active',
     featured: false,
@@ -92,8 +93,8 @@ export const mockProducts: Product[] = [
     category: 'Premium',
     image: '/src/assets/premium-gold.jpg',
     variations: [
-      { id: '6-250', name: '250g', weight: '250g', priceModifier: 0, stock: 8 },
-      { id: '6-500', name: '500g', weight: '500g', priceModifier: 0.8, stock: 5 }
+      { id: '6-250', name: '250g', weight: '250g', price: 75.00, stock: 8 },
+      { id: '6-500', name: '500g', weight: '500g', price: 135.00, stock: 5 }
     ],
     status: 'active',
     featured: true,
