@@ -1,6 +1,15 @@
+
 import { useState, useEffect } from 'react';
-import { CartItem, Product, ProductVariation } from '@/types/product';
+import { Product, ProductVariation } from '@/types/product';
 import { toast } from '@/hooks/use-toast';
+
+export interface CartItem {
+  productId: string;
+  variationId?: string;
+  quantity: number;
+  product: Product;
+  variation?: ProductVariation;
+}
 
 const CART_STORAGE_KEY = 'merito-cart';
 
@@ -96,8 +105,8 @@ export function useCart() {
 
   const getTotal = () => {
     return items.reduce((total, item) => {
-      const basePrice = item.product.price;
-      const variationPrice = item.variation ? basePrice + (basePrice * item.variation.priceModifier) : basePrice;
+      const basePrice = item.product.price || item.product.base_price || 0;
+      const variationPrice = item.variation ? item.variation.price : basePrice;
       return total + (variationPrice * item.quantity);
     }, 0);
   };

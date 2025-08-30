@@ -1,141 +1,143 @@
+
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Search, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ShoppingCart, User, LogOut, Menu, X } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
-import { CartDropdown } from './CartDropdown';
-import MeritoLogo from '@/assets/merito-logo.jpg';
 
 export function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut, isAdmin } = useAuth();
   const { getItemCount } = useCart();
-  const location = useLocation();
-  const itemCount = getItemCount();
+  const navigate = useNavigate();
 
-  const navigation = [
-    { name: 'Início', href: '/' },
-    { name: 'Produtos', href: '/produtos' },
-    { name: 'Sobre', href: '/sobre' },
-    { name: 'Contato', href: '/contato' },
-  ];
-
-  const isActive = (href: string) => {
-    if (href === '/') return location.pathname === '/';
-    return location.pathname.startsWith(href);
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
+    <header className="bg-white shadow-sm border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center">
             <img 
-              src={MeritoLogo} 
-              alt="Mérito Cafés Especiais" 
-              className="w-10 h-10 rounded-full object-cover"
+              src="/src/assets/merito-logo.jpg" 
+              alt="Mérito Coffee" 
+              className="h-10 w-auto"
             />
-            <span className="font-playfair font-bold text-xl text-primary">
-              MÉRITO
-            </span>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`text-sm font-medium transition-colors hover:text-accent ${
-                  isActive(item.href) 
-                    ? 'text-accent' 
-                    : 'text-muted-foreground'
-                }`}
-              >
-                {item.name}
-              </Link>
-            ))}
+            <Link to="/" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Início
+            </Link>
+            <Link to="/produtos" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Produtos
+            </Link>
+            <Link to="/sobre" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Sobre
+            </Link>
+            <Link to="/contato" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Contato
+            </Link>
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-2">
-            {/* Search */}
-            <Button variant="ghost" size="icon" className="hidden md:flex">
-              <Search className="h-4 w-4" />
-            </Button>
-
-            {/* User */}
-            <Button variant="ghost" size="icon" className="hidden md:flex">
-              <User className="h-4 w-4" />
-            </Button>
-
+          {/* User Actions */}
+          <div className="flex items-center space-x-4">
             {/* Cart */}
-            <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => setCartOpen(!cartOpen)}
-                className="relative"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                {itemCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                  >
-                    {itemCount}
+            <Link to="/carrinho" className="relative">
+              <Button variant="ghost" size="sm">
+                <ShoppingCart className="w-5 h-5" />
+                {getItemCount() > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                    {getItemCount()}
                   </Badge>
                 )}
               </Button>
-              <CartDropdown open={cartOpen} onClose={() => setCartOpen(false)} />
-            </div>
+            </Link>
 
-            {/* Mobile menu button */}
+            {/* Authentication */}
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 hidden md:inline">
+                  Olá, {user.user_metadata?.name || user.email}
+                </span>
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="outline" size="sm">
+                      Admin
+                    </Button>
+                  </Link>
+                )}
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link to="/login">
+                  <Button variant="ghost" size="sm">
+                    <User className="w-4 h-4 mr-2" />
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/cadastro">
+                  <Button size="sm">
+                    Cadastro
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {/* Mobile Menu Button */}
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {mobileMenuOpen ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Menu className="h-4 w-4" />
-              )}
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           </div>
         </div>
 
         {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border">
-            <nav className="flex flex-col space-y-3">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`text-sm font-medium transition-colors hover:text-accent ${
-                    isActive(item.href) 
-                      ? 'text-accent' 
-                      : 'text-muted-foreground'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              <div className="flex items-center space-x-2 pt-2 border-t border-border">
-                <Button variant="ghost" size="sm" className="flex-1">
-                  <Search className="h-4 w-4 mr-2" />
-                  Buscar
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-1">
-                  <User className="h-4 w-4 mr-2" />
-                  Entrar
-                </Button>
-              </div>
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t">
+            <nav className="flex flex-col space-y-2">
+              <Link 
+                to="/" 
+                className="text-gray-600 hover:text-gray-900 py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Início
+              </Link>
+              <Link 
+                to="/produtos" 
+                className="text-gray-600 hover:text-gray-900 py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Produtos
+              </Link>
+              <Link 
+                to="/sobre" 
+                className="text-gray-600 hover:text-gray-900 py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Sobre
+              </Link>
+              <Link 
+                to="/contato" 
+                className="text-gray-600 hover:text-gray-900 py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Contato
+              </Link>
             </nav>
           </div>
         )}
