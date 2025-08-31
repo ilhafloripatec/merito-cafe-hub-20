@@ -1,6 +1,6 @@
-
 import { useState } from 'react';
 import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,20 +12,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-
-// Use the Product type from useProducts hook
 import { Product } from '@/hooks/useProducts';
 
 export function ProductsManagement() {
-  const { products, loading, createProduct, updateProduct, deleteProduct } = useProducts();
+  const { products, loading: productsLoading, createProduct, updateProduct, deleteProduct } = useProducts();
+  const { categories } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Estado para o loading do form
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
-    category: '',
+    category_id: '',
     status: 'ativo' as 'ativo' | 'inativo',
     featured: false,
     tags: '',
@@ -42,7 +42,7 @@ export function ProductsManagement() {
       name: '',
       description: '',
       price: '',
-      category: '',
+      category_id: '',
       status: 'ativo',
       featured: false,
       tags: '',
@@ -58,7 +58,7 @@ export function ProductsManagement() {
         name: product.name,
         description: product.description || '',
         price: product.base_price?.toString() || '',
-        category: product.category_id || '',
+        category_id: product.category_id || '',
         status: product.status || 'ativo',
         featured: product.featured || false,
         tags: product.tags?.join(', ') || '',
@@ -72,13 +72,20 @@ export function ProductsManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    console.log("Tentando submeter o formulário com os dados:", formData); // Log para depuração
+
+    if (!formData.category_id) {
+        toast({ title: "Erro de Validação", description: "Por favor, selecione uma categoria para o produto.", variant: "destructive" });
+        return;
+    }
+
+    setIsSubmitting(true);
     try {
       const productData = {
         name: formData.name,
         description: formData.description,
         base_price: parseFloat(formData.price),
-        category_id: formData.category,
+        category_id: formData.category_id,
         status: formData.status,
         featured: formData.featured,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
@@ -103,11 +110,14 @@ export function ProductsManagement() {
       setIsDialogOpen(false);
       resetForm();
     } catch (error) {
+      console.error("Erro ao salvar o produto:", error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao salvar o produto.",
+        description: "Ocorreu um erro ao salvar o produto. Verifique os dados e tente novamente.",
         variant: "destructive"
       });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -129,7 +139,7 @@ export function ProductsManagement() {
     }
   };
 
-  if (loading) {
+  if (productsLoading) {
     return <div className="flex justify-center p-8">Carregando produtos...</div>;
   }
 
@@ -163,7 +173,8 @@ export function ProductsManagement() {
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Adicionado id ao formulário */}
+            <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Nome</label>
@@ -197,10 +208,18 @@ export function ProductsManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Categoria</label>
-                  <Input
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  />
+                  <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Status</label>
@@ -230,19 +249,20 @@ export function ProductsManagement() {
                 <Input
                   value={formData.images}
                   onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-                  placeholder="https://exemplo.com/imagem1.jpg, https://exemplo.com/imagem2.jpg"
+                  placeholder="https://exemplo.com/imagem1.jpg"
                 />
               </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingProduct ? 'Salvar' : 'Criar'}
-                </Button>
-              </DialogFooter>
             </form>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              {/* Adicionado form="product-form" e disabled={isSubmitting} */}
+              <Button type="submit" form="product-form" disabled={isSubmitting}>
+                {isSubmitting ? 'Salvando...' : (editingProduct ? 'Salvar' : 'Criar')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -259,7 +279,7 @@ export function ProductsManagement() {
                 <TableHead>Categoria</TableHead>
                 <TableHead>Preço</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Featured</TableHead>
+                <TableHead>Destaque</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -275,7 +295,7 @@ export function ProductsManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {product.featured && <Badge variant="outline">Destaque</Badge>}
+                    {product.featured && <Badge variant="outline">Sim</Badge>}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
