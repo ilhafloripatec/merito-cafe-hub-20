@@ -49,7 +49,6 @@ export function useProducts() {
           category:categories(name, slug),
           variations:product_variations(*)
         `)
-        .eq('status', 'ativo')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

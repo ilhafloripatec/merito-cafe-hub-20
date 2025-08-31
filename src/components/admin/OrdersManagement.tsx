@@ -48,7 +48,14 @@ export function OrdersManagement() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      // Map the data to ensure proper types
+      const mappedOrders: Order[] = (data || []).map(order => ({
+        ...order,
+        profiles: order.profiles ? { name: order.profiles.name } : null
+      }));
+      
+      setOrders(mappedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast({
