@@ -37,11 +37,12 @@ export default function Checkout() {
   const subtotal = getTotal();
   const total = subtotal + shippingFee;
 
+  // Redirecionar apenas se não houver itens no carrinho
   useEffect(() => {
     if (items.length === 0) {
       navigate('/carrinho');
     }
-  }, [items, navigate]);
+  }, [items.length, navigate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -49,16 +50,29 @@ export default function Checkout() {
 
   const validateForm = () => {
     const required = ['name', 'email', 'phone', 'street', 'number', 'neighborhood', 'city', 'state', 'zipCode'];
+    
     for (const field of required) {
       if (!formData[field as keyof typeof formData]) {
         toast({
           title: "Erro no formulário",
-          description: "Por favor, preencha todos os campos obrigatórios.",
+          description: `Campo ${field === 'name' ? 'nome' : field === 'email' ? 'email' : field === 'phone' ? 'telefone' : field === 'street' ? 'rua' : field === 'number' ? 'número' : field === 'neighborhood' ? 'bairro' : field === 'city' ? 'cidade' : field === 'state' ? 'estado' : 'CEP'} é obrigatório.`,
           variant: "destructive"
         });
         return false;
       }
     }
+
+    // Validar email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Erro no formulário",
+        description: "Por favor, insira um email válido.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     return true;
   };
 
@@ -71,14 +85,31 @@ export default function Checkout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    console.log('Iniciando checkout...');
+    console.log('Itens no carrinho:', items);
+    console.log('Dados do formulário:', formData);
+    
+    if (!validateForm()) {
+      console.log('Validação do formulário falhou');
+      return;
+    }
+    
+    if (items.length === 0) {
+      toast({
+        title: "Carrinho vazio",
+        description: "Não há itens no carrinho para finalizar o pedido.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setLoading(true);
     
     try {
       const orderNumber = generateOrderNumber();
+      console.log('Número do pedido gerado:', orderNumber);
       
-      // Create order
+      // Criar pedido
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -91,22 +122,28 @@ export default function Checkout() {
           payment_method: formData.paymentMethod,
           shipping_address: {
             name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
             street: formData.street,
             number: formData.number,
             complement: formData.complement,
             neighborhood: formData.neighborhood,
             city: formData.city,
             state: formData.state,
-            zip_code: formData.zipCode,
-            phone: formData.phone
+            zip_code: formData.zipCode
           }
         })
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Erro ao criar pedido:', orderError);
+        throw orderError;
+      }
 
-      // Create order items
+      console.log('Pedido criado com sucesso:', order);
+
+      // Criar itens do pedido
       const orderItems = items.map(item => ({
         order_id: order.id,
         product_id: item.productId,
@@ -116,25 +153,38 @@ export default function Checkout() {
         grind_type: null
       }));
 
+      console.log('Itens do pedido a serem criados:', orderItems);
+
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Erro ao criar itens do pedido:', itemsError);
+        throw itemsError;
+      }
 
+      console.log('Itens do pedido criados com sucesso');
+
+      // Mostrar sucesso
       toast({
         title: "Pedido realizado com sucesso!",
         description: `Pedido #${orderNumber} foi criado. Você receberá detalhes por email.`
       });
 
+      // Limpar carrinho
       clearCart();
-      navigate('/');
+      
+      // Aguardar um pouco e redirecionar
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
       
     } catch (error: any) {
-      console.error('Error creating order:', error);
+      console.error('Erro completo:', error);
       toast({
         title: "Erro ao finalizar pedido",
-        description: error.message || "Ocorreu um erro inesperado.",
+        description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -142,6 +192,7 @@ export default function Checkout() {
     }
   };
 
+  // Se não há itens, não renderizar nada (o useEffect vai redirecionar)
   if (items.length === 0) {
     return null;
   }
@@ -347,6 +398,7 @@ export default function Checkout() {
                   className="w-full" 
                   size="lg"
                   disabled={loading}
+                  type="submit"
                 >
                   {loading ? 'Processando...' : 'Finalizar Pedido'}
                 </Button>
