@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,9 +21,7 @@ interface Order {
   payment_method: string;
   shipping_address: any;
   created_at: string;
-  profiles?: {
-    name: string;
-  } | null;
+  customer_name?: string;
 }
 
 export function OrdersManagement() {
@@ -39,20 +36,30 @@ export function OrdersManagement() {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
+      // First, get all orders
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles(name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Map the data to ensure proper types
-      const mappedOrders: Order[] = (data || []).map(order => ({
+      if (ordersError) throw ordersError;
+
+      // Then get all profiles to match user names
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name');
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user_id to name for quick lookup
+      const profilesMap = new Map(
+        profilesData.map(profile => [profile.id, profile.name])
+      );
+
+      // Map orders with customer names
+      const mappedOrders: Order[] = (ordersData || []).map(order => ({
         ...order,
-        profiles: order.profiles ? { name: order.profiles.name } : null
+        customer_name: profilesMap.get(order.user_id) || 'Cliente não encontrado'
       }));
       
       setOrders(mappedOrders);
@@ -120,7 +127,7 @@ export function OrdersManagement() {
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
       order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.profiles?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'todos' || order.status === statusFilter;
     
@@ -180,7 +187,7 @@ export function OrdersManagement() {
               {filteredOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">#{order.order_number}</TableCell>
-                  <TableCell>{order.profiles?.name || 'Cliente não encontrado'}</TableCell>
+                  <TableCell>{order.customer_name}</TableCell>
                   <TableCell>
                     {new Date(order.created_at).toLocaleDateString('pt-BR')}
                   </TableCell>
