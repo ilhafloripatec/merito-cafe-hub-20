@@ -9,7 +9,7 @@ import { useCart } from '@/hooks/useCart';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, profile, signOut, isAdmin, loading } = useAuth();
   const { getItemCount } = useCart();
   const navigate = useNavigate();
 
@@ -17,6 +17,14 @@ export function Header() {
     await signOut();
     navigate('/');
   };
+
+  // Debug log para verificar o estado do usuário
+  console.log('[Header] Estado atual:', {
+    user: user?.id,
+    profile: profile?.id,
+    isAdmin,
+    loading
+  });
 
   return (
     <header className="bg-white shadow-sm border-b">
@@ -62,10 +70,12 @@ export function Header() {
             </Link>
 
             {/* Authentication */}
-            {user ? (
+            {loading ? (
+              <div className="text-sm text-gray-500">Carregando...</div>
+            ) : user ? (
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-600 hidden md:inline">
-                  Olá, {user.user_metadata?.name || user.email}
+                  Olá, {profile?.name || user.user_metadata?.name || user.email}
                 </span>
                 {isAdmin && (
                   <Link to="/admin">
