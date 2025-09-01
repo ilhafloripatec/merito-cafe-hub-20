@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
@@ -113,13 +114,16 @@ export default function Checkout() {
       const orderNumber = generateOrderNumber();
       console.log('[Checkout LOG] Número do pedido gerado:', orderNumber);
       
+      // Verificar se o usuário está autenticado
+      console.log('[Checkout LOG] Verificando autenticação. User ID:', user?.id || 'Usuário não autenticado');
+      
       const orderPayload = {
         order_number: orderNumber,
         user_id: user?.id || null,
         status: 'pendente' as const,
-        subtotal: subtotal,
-        shipping: shippingFee,
-        total: total,
+        subtotal: Number(subtotal.toFixed(2)),
+        shipping: Number(shippingFee.toFixed(2)),
+        total: Number(total.toFixed(2)),
         payment_method: formData.paymentMethod,
         shipping_address: {
           name: formData.name,
@@ -127,7 +131,7 @@ export default function Checkout() {
           phone: formData.phone,
           street: formData.street,
           number: formData.number,
-          complement: formData.complement,
+          complement: formData.complement || '',
           neighborhood: formData.neighborhood,
           city: formData.city,
           state: formData.state,
@@ -135,7 +139,7 @@ export default function Checkout() {
         }
       };
 
-      console.log('[Checkout LOG] Payload do pedido pronto:', orderPayload);
+      console.log('[Checkout LOG] Payload do pedido preparado:', JSON.stringify(orderPayload, null, 2));
       console.log('[Checkout LOG] ---> FAZENDO CHAMADA PARA SUPABASE: Inserir em "orders"...');
       
       const { data: order, error: orderError } = await supabase
@@ -144,47 +148,82 @@ export default function Checkout() {
         .select()
         .single();
 
+      console.log('[Checkout LOG] Resposta do Supabase para inserção do pedido:');
+      console.log('[Checkout LOG] - Data:', order);
+      console.log('[Checkout LOG] - Error:', orderError);
+
       if (orderError) {
-        console.error('[Checkout LOG] Erro ao inserir na tabela "orders":', orderError);
-        throw orderError;
+        console.error('[Checkout LOG] ERRO DETALHADO ao inserir na tabela "orders":', {
+          message: orderError.message,
+          details: orderError.details,
+          hint: orderError.hint,
+          code: orderError.code
+        });
+        throw new Error(`Erro ao criar pedido: ${orderError.message}`);
       }
 
-      console.log('[Checkout LOG] Pedido criado com sucesso na tabela "orders":', order);
+      if (!order) {
+        console.error('[Checkout LOG] ERRO: Pedido não foi retornado após inserção');
+        throw new Error('Pedido não foi criado corretamente');
+      }
 
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.productId,
-        variation_id: item.variationId || null,
-        quantity: item.quantity,
-        unit_price: item.variation ? item.variation.price : item.product.price,
-        grind_type: null
-      }));
+      console.log('[Checkout LOG] ✅ Pedido criado com sucesso na tabela "orders":', order);
+
+      // Preparar itens do pedido
+      const orderItems = items.map(item => {
+        const itemData = {
+          order_id: order.id,
+          product_id: item.productId,
+          variation_id: item.variationId || null,
+          quantity: item.quantity,
+          unit_price: Number((item.variation ? item.variation.price : item.product.price).toFixed(2)),
+          grind_type: null
+        };
+        console.log('[Checkout LOG] Item preparado:', itemData);
+        return itemData;
+      });
       
-      console.log('[Checkout LOG] Itens do pedido prontos para inserir:', orderItems);
+      console.log('[Checkout LOG] Total de itens para inserir:', orderItems.length);
       console.log('[Checkout LOG] ---> FAZENDO CHAMADA PARA SUPABASE: Inserir em "order_items"...');
       
-      const { error: itemsError } = await supabase
+      const { data: itemsData, error: itemsError } = await supabase
         .from('order_items')
-        .insert(orderItems);
+        .insert(orderItems)
+        .select();
+
+      console.log('[Checkout LOG] Resposta do Supabase para inserção dos itens:');
+      console.log('[Checkout LOG] - Data:', itemsData);
+      console.log('[Checkout LOG] - Error:', itemsError);
 
       if (itemsError) {
-        console.error('[Checkout LOG] Erro ao inserir na tabela "order_items":', itemsError);
-        throw itemsError;
+        console.error('[Checkout LOG] ERRO DETALHADO ao inserir na tabela "order_items":', {
+          message: itemsError.message,
+          details: itemsError.details,
+          hint: itemsError.hint,
+          code: itemsError.code
+        });
+        throw new Error(`Erro ao criar itens do pedido: ${itemsError.message}`);
       }
       
-      console.log('[Checkout LOG] Itens do pedido criados com sucesso.');
+      console.log('[Checkout LOG] ✅ Itens do pedido criados com sucesso.');
 
       toast({
         title: "Pedido realizado com sucesso!",
-        description: `Seu pedido #${orderNumber} foi criado.`
+        description: `Seu pedido #${orderNumber} foi criado e está sendo processado.`
       });
 
+      console.log('[Checkout LOG] Limpando carrinho...');
       clearCart();
       
-      setTimeout(() => navigate('/'), 2000);
+      console.log('[Checkout LOG] Redirecionando para home em 2 segundos...');
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
       
     } catch (error: any) {
-      console.error('[Checkout LOG] Erro capturado no bloco CATCH:', error);
+      console.error('[Checkout LOG] ERRO CAPTURADO no bloco CATCH:', error);
+      console.error('[Checkout LOG] Stack trace:', error.stack);
+      
       toast({
         title: "Erro ao finalizar pedido",
         description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
@@ -211,11 +250,8 @@ export default function Checkout() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-primary mb-8">Finalizar Pedido</h1>
         
-        {/* A tag <form> agora envolve toda a grade */}
         <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-3">
-          {/* Coluna do Formulário */}
           <div className="lg:col-span-2 space-y-6">
-              {/* Dados Pessoais */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -257,7 +293,6 @@ export default function Checkout() {
                 </CardContent>
               </Card>
 
-              {/* Endereço de Entrega */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -266,7 +301,6 @@ export default function Checkout() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* ... campos de endereço ... */}
                   <div>
                     <label className="text-sm font-medium">CEP *</label>
                     <Input value={formData.zipCode} onChange={(e) => handleInputChange('zipCode', e.target.value)} placeholder="00000-000" required />
@@ -302,7 +336,6 @@ export default function Checkout() {
                 </CardContent>
               </Card>
 
-              {/* Forma de Pagamento */}
               <Card>
                 <CardHeader>
                   <CardTitle>Forma de Pagamento</CardTitle>
@@ -320,7 +353,6 @@ export default function Checkout() {
               </Card>
           </div>
 
-          {/* Coluna do Resumo do Pedido */}
           <div>
             <Card className="sticky top-4">
               <CardHeader>
@@ -330,7 +362,6 @@ export default function Checkout() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* ... itens do resumo ... */}
                 {items.map((item) => {
                     const price = item.variation ? item.variation.price : item.product.price;
                     return (
@@ -354,7 +385,6 @@ export default function Checkout() {
                   <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{formatCurrency(total)}</span></div>
                 </div>
 
-                {/* Este botão agora é do tipo "submit" e está dentro do formulário */}
                 <Button 
                   type="submit"
                   className="w-full" 
