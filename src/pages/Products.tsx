@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Search, Filter, Grid, List, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,42 +6,44 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { ProductCard } from '@/components/ProductCard';
-import { mockProducts, mockCategories } from '@/lib/mock-data';
+import { SupabaseProductCard } from '@/components/SupabaseProductCard';
+import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
 
 export default function Products() {
+  const { products, loading: productsLoading } = useProducts();
+  const { categories, loading: categoriesLoading } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showFilters, setShowFilters] = useState(false);
 
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = mockProducts;
+    if (!products) return [];
+    
+    let filtered = products.filter(product => product.status === 'ativo');
 
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(product => 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.tags && product.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
       );
     }
 
     // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => 
-        product.category.toLowerCase() === selectedCategory.toLowerCase()
-      );
+      filtered = filtered.filter(product => product.category_id === selectedCategory);
     }
 
     // Sort products
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'price-low':
-          return a.price - b.price;
+          return a.base_price - b.base_price;
         case 'price-high':
-          return b.price - a.price;
+          return b.base_price - a.base_price;
         case 'name':
           return a.name.localeCompare(b.name);
         case 'featured':
@@ -51,7 +54,30 @@ export default function Products() {
     });
 
     return filtered;
-  }, [searchTerm, selectedCategory, sortBy]);
+  }, [products, searchTerm, selectedCategory, sortBy]);
+
+  const getCategoryOptions = () => {
+    const allOption = { id: 'all', name: 'Todas as categorias', count: products?.length || 0 };
+    const categoryOptions = categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      count: products?.filter(p => p.category_id === cat.id && p.status === 'ativo').length || 0
+    }));
+    return [allOption, ...categoryOptions];
+  };
+
+  if (productsLoading || categoriesLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando produtos...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -85,7 +111,7 @@ export default function Products() {
               <SelectValue placeholder="Categoria" />
             </SelectTrigger>
             <SelectContent>
-              {mockCategories.map((category) => (
+              {getCategoryOptions().map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name} ({category.count})
                 </SelectItem>
@@ -122,14 +148,6 @@ export default function Products() {
             >
               <List className="w-4 h-4" />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-            </Button>
           </div>
         </div>
 
@@ -150,7 +168,7 @@ export default function Products() {
             )}
             {selectedCategory !== 'all' && (
               <Badge variant="secondary" className="gap-1">
-                Categoria: {mockCategories.find(c => c.id === selectedCategory)?.name}
+                Categoria: {categories.find(c => c.id === selectedCategory)?.name}
                 <button
                   onClick={() => setSelectedCategory('all')}
                   className="ml-1 hover:text-destructive"
@@ -199,10 +217,10 @@ export default function Products() {
             : 'grid-cols-1'
         }`}>
           {filteredAndSortedProducts.map((product) => (
-            <ProductCard 
+            <SupabaseProductCard 
               key={product.id} 
               product={product} 
-              featured={product.featured}
+              featured={product.featured || false}
             />
           ))}
         </div>
