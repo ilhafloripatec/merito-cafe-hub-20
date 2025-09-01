@@ -88,6 +88,11 @@ export default function Checkout() {
     return `MRT${timestamp}${random}`;
   };
 
+  const isValidUUID = (uuid: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('[Checkout LOG] Botão Finalizar Pedido clicado. Iniciando handleSubmit.');
@@ -169,8 +174,28 @@ export default function Checkout() {
 
       console.log('[Checkout LOG] ✅ Pedido criado com sucesso na tabela "orders":', order);
 
-      // Preparar itens do pedido
-      const orderItems = items.map(item => {
+      // Verificar se temos produtos válidos antes de tentar inserir os itens
+      const validItems = items.filter(item => {
+        const hasValidProductId = item.productId && isValidUUID(item.productId);
+        const hasValidVariationId = !item.variationId || isValidUUID(item.variationId);
+        
+        console.log('[Checkout LOG] Verificando item:', {
+          productId: item.productId,
+          variationId: item.variationId,
+          hasValidProductId,
+          hasValidVariationId
+        });
+        
+        return hasValidProductId && hasValidVariationId;
+      });
+
+      if (validItems.length === 0) {
+        console.error('[Checkout LOG] ERRO: Nenhum item válido encontrado no carrinho');
+        throw new Error('Os produtos no carrinho não possuem IDs válidos. Por favor, remova os itens e adicione novamente.');
+      }
+
+      // Preparar itens do pedido apenas com IDs válidos
+      const orderItems = validItems.map(item => {
         const itemData = {
           order_id: order.id,
           product_id: item.productId,
@@ -183,7 +208,7 @@ export default function Checkout() {
         return itemData;
       });
       
-      console.log('[Checkout LOG] Total de itens para inserir:', orderItems.length);
+      console.log('[Checkout LOG] Total de itens válidos para inserir:', orderItems.length);
       console.log('[Checkout LOG] ---> FAZENDO CHAMADA PARA SUPABASE: Inserir em "order_items"...');
       
       const { data: itemsData, error: itemsError } = await supabase
