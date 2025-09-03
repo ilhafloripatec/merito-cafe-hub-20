@@ -204,6 +204,81 @@ export type Database = {
         }
         Relationships: []
       }
+      product_attribute_values: {
+        Row: {
+          attribute_id: string
+          created_at: string
+          id: string
+          slug: string
+          value: string
+        }
+        Insert: {
+          attribute_id: string
+          created_at?: string
+          id?: string
+          slug: string
+          value: string
+        }
+        Update: {
+          attribute_id?: string
+          created_at?: string
+          id?: string
+          slug?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      product_attribute_variations: {
+        Row: {
+          attribute_id: string
+          attribute_value_id: string
+          created_at: string
+          id: string
+          product_id: string
+          variation_id: string | null
+        }
+        Insert: {
+          attribute_id: string
+          attribute_value_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          variation_id?: string | null
+        }
+        Update: {
+          attribute_id?: string
+          attribute_value_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          variation_id?: string | null
+        }
+        Relationships: []
+      }
+      product_attributes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          type?: string
+        }
+        Relationships: []
+      }
       product_variations: {
         Row: {
           created_at: string | null

@@ -517,7 +517,7 @@ export default function Checkout() {
         neighborhood: addressData.bairro,
         city: addressData.localidade,
         state: addressData.uf,
-        complement: addressData.complemento || prev.complemento
+        complement: addressData.complemento || prev.complement
       }));
       toast({ title: "Endereço encontrado!", description: "Os campos de endereço foram preenchidos." });
       numberInputRef.current?.focus();
