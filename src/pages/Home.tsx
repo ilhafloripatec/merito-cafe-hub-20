@@ -2,12 +2,13 @@ import { Link } from 'react-router-dom';
 import { Coffee, Star, Truck, Shield, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ProductCard } from '@/components/ProductCard';
-import { mockProducts } from '@/lib/mock-data';
+import { SupabaseProductCard } from '@/components/SupabaseProductCard';
+import { useProducts } from '@/hooks/useProducts';
 import MeritoLogo from '@/assets/merito-logo.jpg';
 
 export default function Home() {
-  const featuredProducts = mockProducts.filter(product => product.featured).slice(0, 3);
+  const { products, loading } = useProducts();
+  const featuredProducts = products?.filter(product => product.featured && product.status === 'ativo').slice(0, 3) || [];
 
   return (
     <div className="space-y-0">
@@ -113,9 +114,25 @@ export default function Home() {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 mb-8">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} featured />
-            ))}
+            {loading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <Card key={index} className="animate-pulse">
+                  <div className="aspect-[4/3] bg-muted"></div>
+                  <CardContent className="p-4">
+                    <div className="h-4 bg-muted rounded mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : featuredProducts.length > 0 ? (
+              featuredProducts.map((product) => (
+                <SupabaseProductCard key={product.id} product={product} featured />
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-8">
+                <p className="text-muted-foreground">Nenhum produto em destaque encontrado.</p>
+              </div>
+            )}
           </div>
           <div className="text-center">
             <Button asChild variant="outline" size="lg">
