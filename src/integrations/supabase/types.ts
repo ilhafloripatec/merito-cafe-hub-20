@@ -110,6 +110,123 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_items: {
+        Row: {
+          created_at: string
+          exchange_id: string
+          grind_type: string | null
+          id: string
+          product_id: string | null
+          quantity: number
+          reason: string | null
+          unit_price: number
+          variation_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          exchange_id: string
+          grind_type?: string | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          reason?: string | null
+          unit_price: number
+          variation_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          exchange_id?: string
+          grind_type?: string | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          reason?: string | null
+          unit_price?: number
+          variation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_items_exchange_id_fkey"
+            columns: ["exchange_id"]
+            isOneToOne: false
+            referencedRelation: "exchanges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchange_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchange_items_variation_id_fkey"
+            columns: ["variation_id"]
+            isOneToOne: false
+            referencedRelation: "product_variations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exchanges: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          description: string | null
+          id: string
+          images: string[] | null
+          order_id: string | null
+          reason: string
+          status: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          order_id?: string | null
+          reason: string
+          status?: string
+          type: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          order_id?: string | null
+          reason?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchanges_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string | null
