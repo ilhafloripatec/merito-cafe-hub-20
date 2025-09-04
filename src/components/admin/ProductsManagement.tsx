@@ -294,7 +294,7 @@ export function ProductsManagement() {
                                 <SelectValue placeholder={`Selecione ${attribute.name.toLowerCase()}`} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">Nenhum</SelectItem>
+                                <SelectItem value="none">Nenhum</SelectItem>
                                 {attribute.values.map((value) => (
                                   <SelectItem key={value.id} value={value.id}>
                                     {value.value}
