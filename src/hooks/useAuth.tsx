@@ -35,45 +35,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) {
-        console.warn('Perfil não encontrado para o usuário:', error.message);
+        console.warn('⚠️ Perfil não encontrado para o usuário:', error.message);
         setProfile(null);
         return;
-      };
+      }
       setProfile(data);
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
+      console.error('❌ Erro ao buscar perfil:', error);
       setProfile(null);
     }
   }, []);
 
   useEffect(() => {
     const checkUserSession = async () => {
-      // 1. Verifica a sessão inicial uma vez
       const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
+      let currentUser = session?.user ?? null;
+
+      // fallback: tenta pegar o usuário direto
+      if (!currentUser) {
+        const { data: { user } } = await supabase.auth.getUser();
+        currentUser = user ?? null;
+      }
+
+      console.log("🔑 Sessão inicial carregada:", currentUser);
+
       setUser(currentUser);
-      
       if (currentUser) {
         await fetchProfile(currentUser.id);
       }
-      
-      // 2. Termina o loading inicial
       setLoading(false);
     };
 
     checkUserSession();
 
-    // 3. Ouve por mudanças futuras (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
+        console.log("📡 onAuthStateChange event:", event, "session:", session);
 
-        if (currentUser) {
-          // Não precisa setar loading aqui, apenas busca o perfil
-          await fetchProfile(currentUser.id);
-        } else {
+        const currentUser = session?.user ?? null;
+
+        if (!currentUser) {
+          setUser(null);
           setProfile(null);
+        } else {
+          setUser(currentUser);
+          await fetchProfile(currentUser.id);
         }
       }
     );
@@ -88,9 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { name }
-        }
+        options: { data: { name } }
       });
       if (error) throw error;
       toast({
@@ -157,7 +161,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
   };
 
-  // Renderiza um componente de loading enquanto a sessão inicial é verificada
   return (
     <AuthContext.Provider value={value}>
       {loading ? (
@@ -178,4 +181,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
