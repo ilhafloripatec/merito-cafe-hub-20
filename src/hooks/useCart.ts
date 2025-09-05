@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from 'react';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Product, ProductVariation } from '@/types/product';
 import { toast } from '@/hooks/use-toast';
 
@@ -11,119 +11,99 @@ export interface CartItem {
   variation?: ProductVariation;
 }
 
-const CART_STORAGE_KEY = 'merito-cart';
-
-export function useCart() {
-  const [items, setItems] = useState<CartItem[]>([]);
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-    if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
-      }
-    }
-  }, []);
-
-  // Save cart to localStorage whenever items change
-  useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
-
-  const addItem = (product: Product, variation?: ProductVariation, quantity: number = 1) => {
-    setItems(currentItems => {
-      const existingItemIndex = currentItems.findIndex(
-        item => item.productId === product.id && item.variationId === variation?.id
-      );
-
-      if (existingItemIndex >= 0) {
-        // Update existing item
-        const updatedItems = [...currentItems];
-        updatedItems[existingItemIndex].quantity += quantity;
-        toast({
-          title: "Produto atualizado",
-          description: `${product.name} foi atualizado no carrinho`,
-        });
-        return updatedItems;
-      } else {
-        // Add new item
-        const newItem: CartItem = {
-          productId: product.id,
-          variationId: variation?.id,
-          quantity,
-          product,
-          variation
-        };
-        toast({
-          title: "Produto adicionado",
-          description: `${product.name} foi adicionado ao carrinho`,
-        });
-        return [...currentItems, newItem];
-      }
-    });
-  };
-
-  const removeItem = (productId: string, variationId?: string) => {
-    setItems(currentItems => {
-      const updatedItems = currentItems.filter(
-        item => !(item.productId === productId && item.variationId === variationId)
-      );
-      toast({
-        title: "Produto removido",
-        description: "Produto removido do carrinho",
-        variant: "destructive"
-      });
-      return updatedItems;
-    });
-  };
-
-  const updateQuantity = (productId: string, variationId: string | undefined, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(productId, variationId);
-      return;
-    }
-
-    setItems(currentItems => 
-      currentItems.map(item => 
-        item.productId === productId && item.variationId === variationId
-          ? { ...item, quantity }
-          : item
-      )
-    );
-  };
-
-  const clearCart = () => {
-    setItems([]);
-    toast({
-      title: "Carrinho limpo",
-      description: "Todos os produtos foram removidos do carrinho",
-    });
-  };
-
-  const getTotal = () => {
-    return items.reduce((total, item) => {
-      // Use price from Product type (not base_price)
-      const basePrice = item.product.price || 0;
-      // Use price from ProductVariation type (not priceModifier)
-      const variationPrice = item.variation ? item.variation.price : basePrice;
-      return total + (variationPrice * item.quantity);
-    }, 0);
-  };
-
-  const getItemCount = () => {
-    return items.reduce((count, item) => count + item.quantity, 0);
-  };
-
-  return {
-    items,
-    addItem,
-    removeItem,
-    updateQuantity,
-    clearCart,
-    getTotal,
-    getItemCount
-  };
+interface CartState {
+  items: CartItem[];
+  addItem: (product: Product, variation?: ProductVariation, quantity?: number) => void;
+  removeItem: (productId: string, variationId?: string) => void;
+  updateQuantity: (productId: string, variationId: string | undefined, quantity: number) => void;
+  clearCart: () => void;
+  getTotal: () => number;
+  getItemCount: () => number;
 }
+
+export const useCart = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      
+      addItem: (product, variation, quantity = 1) => {
+        const { items } = get();
+        const existingItemIndex = items.findIndex(
+          item => item.productId === product.id && item.variationId === variation?.id
+        );
+
+        const updatedItems = [...items];
+
+        if (existingItemIndex >= 0) {
+          updatedItems[existingItemIndex].quantity += quantity;
+          toast({
+            title: "Produto atualizado",
+            description: `${product.name} foi atualizado no carrinho`,
+          });
+        } else {
+          const newItem: CartItem = {
+            productId: product.id,
+            variationId: variation?.id,
+            quantity,
+            product,
+            variation
+          };
+          updatedItems.push(newItem);
+          toast({
+            title: "Produto adicionado",
+            description: `${product.name} foi adicionado ao carrinho`,
+          });
+        }
+        set({ items: updatedItems });
+      },
+
+      removeItem: (productId, variationId) => {
+        const updatedItems = get().items.filter(
+          item => !(item.productId === productId && item.variationId === variationId)
+        );
+        set({ items: updatedItems });
+        toast({
+          title: "Produto removido",
+          description: "Produto removido do carrinho.",
+          variant: "destructive"
+        });
+      },
+
+      updateQuantity: (productId, variationId, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(productId, variationId);
+          return;
+        }
+        const updatedItems = get().items.map(item =>
+          item.productId === productId && item.variationId === variationId
+            ? { ...item, quantity }
+            : item
+        );
+        set({ items: updatedItems });
+      },
+
+      clearCart: () => {
+        set({ items: [] });
+        toast({
+          title: "Carrinho limpo",
+          description: "Todos os produtos foram removidos.",
+        });
+      },
+
+      getTotal: () => {
+        return get().items.reduce((total, item) => {
+          const price = item.variation ? item.variation.price : item.product.price;
+          return total + (price * item.quantity);
+        }, 0);
+      },
+
+      getItemCount: () => {
+        return get().items.reduce((count, item) => count + item.quantity, 0);
+      },
+    }),
+    {
+      name: 'merito-cart-storage', // Nome do item no localStorage
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);
