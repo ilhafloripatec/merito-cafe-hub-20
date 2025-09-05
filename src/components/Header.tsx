@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, User, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { CartSidebar } from './CartSidebar';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -57,17 +58,8 @@ export function Header() {
 
           {/* User Actions */}
           <div className="flex items-center space-x-4">
-            {/* Cart */}
-            <Link to="/carrinho" className="relative">
-              <Button variant="ghost" size="sm">
-                <ShoppingCart className="w-5 h-5" />
-                {getItemCount() > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                    {getItemCount()}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
+            {/* Cart Sidebar */}
+            <CartSidebar />
 
             {/* Authentication */}
             {loading ? (

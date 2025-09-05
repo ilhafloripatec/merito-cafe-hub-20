@@ -17,6 +17,7 @@ import { formatCurrency } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { Product } from '@/hooks/useProducts';
 import { AttributesManagement } from './AttributesManagement';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 export function ProductsManagement() {
   const { products, loading: productsLoading, createProduct, updateProduct, deleteProduct } = useProducts();
@@ -319,12 +320,15 @@ export function ProductsManagement() {
                   </div>
 
                   <div>
-                    <Label htmlFor="images">URLs das Imagens (separadas por vírgula)</Label>
-                    <Input
-                      id="images"
-                      value={formData.images}
-                      onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-                      placeholder="https://exemplo.com/imagem1.jpg"
+                    <Label htmlFor="images">Imagens do Produto</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Adicione até 5 imagens. A primeira será a imagem principal. Arraste e solte ou clique para selecionar.
+                    </p>
+                    <ImageUpload
+                      images={formData.images ? formData.images.split(',').filter(img => img.trim()) : []}
+                      onChange={(images) => setFormData({ ...formData, images: images.join(',') })}
+                      maxImages={5}
+                      className="mt-2"
                     />
                   </div>
 

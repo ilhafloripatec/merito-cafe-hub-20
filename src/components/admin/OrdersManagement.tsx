@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Eye } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { OrderDetailsDialog } from '@/components/OrderDetailsDialog';
 
 interface Order {
   id: string;
@@ -29,6 +30,8 @@ export function OrdersManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -215,7 +218,14 @@ export function OrdersManagement() {
                   </TableCell>
                   <TableCell>{order.payment_method || 'N/A'}</TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedOrderId(order.id);
+                        setOrderDetailsOpen(true);
+                      }}
+                    >
                       <Eye className="w-4 h-4 mr-2" />
                       Ver Detalhes
                     </Button>
@@ -232,6 +242,13 @@ export function OrdersManagement() {
           )}
         </CardContent>
       </Card>
+
+      <OrderDetailsDialog
+        orderId={selectedOrderId}
+        open={orderDetailsOpen}
+        onOpenChange={setOrderDetailsOpen}
+        order={orders.find(o => o.id === selectedOrderId)}
+      />
     </div>
   );
 }

@@ -99,6 +99,72 @@ export function useProductAttributes() {
     }
   };
 
+  const updateAttribute = async (id: string, attributeData: { name: string; slug: string; type: string }) => {
+    try {
+      const { data, error } = await supabase
+        .from('product_attributes')
+        .update(attributeData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      await fetchAttributes();
+      return data;
+    } catch (error) {
+      console.error('Erro ao atualizar atributo:', error);
+      throw error;
+    }
+  };
+
+  const deleteAttribute = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('product_attributes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      await fetchAttributes();
+    } catch (error) {
+      console.error('Erro ao excluir atributo:', error);
+      throw error;
+    }
+  };
+
+  const updateAttributeValue = async (id: string, valueData: { value: string; slug: string }) => {
+    try {
+      const { data, error } = await supabase
+        .from('product_attribute_values')
+        .update(valueData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      await fetchAttributes();
+      return data;
+    } catch (error) {
+      console.error('Erro ao atualizar valor do atributo:', error);
+      throw error;
+    }
+  };
+
+  const deleteAttributeValue = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('product_attribute_values')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      await fetchAttributes();
+    } catch (error) {
+      console.error('Erro ao excluir valor do atributo:', error);
+      throw error;
+    }
+  };
+
   const createProductAttributeVariation = async (variationData: Omit<ProductAttributeVariation, 'id' | 'created_at'>) => {
     try {
       const { data, error } = await supabase
@@ -143,7 +209,11 @@ export function useProductAttributes() {
     loading,
     fetchAttributes,
     createAttribute,
+    updateAttribute,
+    deleteAttribute,
     createAttributeValue,
+    updateAttributeValue,
+    deleteAttributeValue,
     createProductAttributeVariation,
     getProductAttributeVariations
   };
