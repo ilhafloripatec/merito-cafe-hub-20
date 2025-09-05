@@ -1,12 +1,22 @@
-import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
-import { toast } from '@/hooks/use-toast';
+// src/hooks/useAuth.tsx
+import {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  ReactNode,
+  useCallback,
+} from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from "@supabase/supabase-js";
+import { toast } from "@/hooks/use-toast";
 
 interface Profile {
   id: string;
   name: string;
-  is_admin: boolean;
+  is_admin: boolean; // agora buscamos is_admin direto
+  created_at: string;
+  role: "admin" | "authenticated"; // campo virtual
 }
 
 interface AuthContextType {
@@ -26,77 +36,88 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 🔹 Busca o perfil do usuário no Supabase
   const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, is_admin')
-        .eq('id', userId)
+        .from("profiles")
+        .select("id, name, is_admin, created_at")
+        .eq("id", userId)
         .single();
 
       if (error) {
-        console.warn('⚠️ Perfil não encontrado para o usuário:', error.message);
+        console.warn("⚠️ Perfil não encontrado:", error.message);
         setProfile(null);
         return;
       }
-      setProfile(data);
-    } catch (error) {
-      console.error('❌ Erro ao buscar perfil:', error);
+
+      if (data) {
+        const profileWithRole: Profile = {
+          ...data,
+          role: data.is_admin ? "admin" : "authenticated", // 🔑 campo virtual
+        };
+        console.log("✅ Perfil carregado:", profileWithRole);
+        setProfile(profileWithRole);
+      } else {
+        setProfile(null);
+      }
+    } catch (err) {
+      console.error("❌ Erro ao buscar perfil:", err);
       setProfile(null);
     }
   }, []);
 
+  // 🔹 Checa a sessão inicial e escuta mudanças
   useEffect(() => {
-    const checkUserSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      let currentUser = session?.user ?? null;
+    const initAuth = async () => {
+      console.log("🔄 Verificando sessão inicial...");
+      const { data, error } = await supabase.auth.getSession();
 
-      // fallback: tenta pegar o usuário direto
-      if (!currentUser) {
-        const { data: { user } } = await supabase.auth.getUser();
-        currentUser = user ?? null;
+      if (error) {
+        console.error("❌ Erro ao obter sessão inicial:", error.message);
       }
 
-      console.log("🔑 Sessão inicial carregada:", currentUser);
-
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchProfile(currentUser.id);
-      }
+      handleSessionChange(data.session ?? null);
       setLoading(false);
     };
-
-    checkUserSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("📡 onAuthStateChange event:", event, "session:", session);
-
-        const currentUser = session?.user ?? null;
-
-        if (!currentUser) {
-          setUser(null);
-          setProfile(null);
-        } else {
-          setUser(currentUser);
-          await fetchProfile(currentUser.id);
-        }
+        handleSessionChange(session);
       }
     );
+
+    initAuth();
 
     return () => {
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
 
+  // 🔹 Função central para lidar com mudanças de sessão
+  const handleSessionChange = async (session: Session | null) => {
+    const currentUser = session?.user ?? null;
+    setUser(currentUser);
+    setProfile(null); // reseta antes de buscar novamente
+
+    if (currentUser) {
+      console.log("👤 Usuário logado:", currentUser.email);
+      await fetchProfile(currentUser.id);
+    } else {
+      console.log("🚪 Usuário deslogado");
+    }
+  };
+
   const signUp = async (email: string, password: string, name: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name } }
+        options: { data: { name } },
       });
       if (error) throw error;
+
       toast({
         title: "Conta criada com sucesso!",
         description: "Verifique seu email para confirmar a conta.",
@@ -106,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast({
         title: "Erro ao criar conta",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       return { data: null, error };
     }
@@ -116,19 +137,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
       if (error) throw error;
+
       toast({
         title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta!"
+        description: "Bem-vindo de volta!",
       });
       return { data, error: null };
     } catch (error: any) {
       toast({
         title: "Erro no login",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       return { data: null, error };
     }
@@ -140,13 +162,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       toast({
         title: "Logout realizado com sucesso!",
-        description: "Até logo!"
+        description: "Até logo!",
       });
     } catch (error: any) {
       toast({
         title: "Erro no logout",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -155,7 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     profile,
     loading,
-    isAdmin: profile?.is_admin ?? false,
+    isAdmin: profile?.role === "admin", // 🔑 depende do profile do banco
     signIn,
     signUp,
     signOut,
@@ -177,7 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
 };
